@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Intrusion Detection System</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Network Intrusion Detection System</h1>
+            <p class="subtitle">Real-time Network Traffic Analysis with Machine Learning</p>
+        </header>
+
+        <div class="control-panel">
+            <div class="control-group">
+                <label for="interface-select">Network Interface:</label>
+                <select id="interface-select">
+                    <option value="">All Interfaces</option>
+                </select>
+            </div>
+            <div class="control-buttons">
+                <button id="start-btn" class="btn btn-success">Start Monitoring</button>
+                <button id="stop-btn" class="btn btn-danger" disabled>Stop Monitoring</button>
+                <button id="clear-btn" class="btn btn-warning">Clear Stats</button>
+            </div>
+            <div class="status-indicator">
+                <span id="status-text">Status: Idle</span>
+                <span id="status-dot" class="status-dot idle"></span>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">&#128202;</div>
+                <div class="stat-content">
+                    <h3>Total Packets</h3>
+                    <p id="total-packets" class="stat-value">0</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon normal">&#128994;</div>
+                <div class="stat-content">
+                    <h3>Normal Traffic</h3>
+                    <p id="normal-packets" class="stat-value">0</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon attack">&#128308;</div>
+                <div class="stat-content">
+                    <h3>Attacks Detected</h3>
+                    <p id="attacks-detected" class="stat-value">0</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">&#128337;</div>
+                <div class="stat-content">
+                    <h3>Uptime</h3>
+                    <p id="uptime" class="stat-value">0s</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-grid">
+            <div class="panel live-packets">
+                <h2>Live Packet Analysis</h2>
+                <div id="packets-container" class="packets-list">
+                    <p class="no-data">No packets captured yet. Click "Start Monitoring" to begin.</p>
+                </div>
+            </div>
+
+            <div class="panel attack-log">
+                <h2>Recent Attack Alerts</h2>
+                <div id="attack-log-container" class="attack-list">
+                    <p class="no-data">No attacks detected</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="system-stats">
+            <h2>System Resources</h2>
+            <div class="resource-grid">
+                <div class="resource-item">
+                    <label>CPU Usage</label>
+                    <div class="progress-bar">
+                        <div id="cpu-bar" class="progress-fill" style="width: 0%"></div>
+                    </div>
+                    <span id="cpu-text">0%</span>
+                </div>
+                <div class="resource-item">
+                    <label>Memory Usage</label>
+                    <div class="progress-bar">
+                        <div id="memory-bar" class="progress-fill" style="width: 0%"></div>
+                    </div>
+                    <span id="memory-text">0%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>
