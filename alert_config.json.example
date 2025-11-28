@@ -1,0 +1,10 @@
+```json
+{
+  "enabled": false,
+  "cooldown_seconds": 60,
+  "admin_phone": "+1234567890",
+  "twilio_account_sid": "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "twilio_auth_token": "your_twilio_auth_token_here",
+  "twilio_from_number": "+1234567890"
+}
+```

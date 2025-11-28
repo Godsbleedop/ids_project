@@ -1,104 +1,169 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Network Intrusion Detection System</title>
+    <title>NIDS | Security Operations Center</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
+
 <body>
-    <div class="container">
-        <header>
-            <h1>Network Intrusion Detection System</h1>
-            <p class="subtitle">Real-time Network Traffic Analysis with Machine Learning</p>
-        </header>
-
-        <div class="control-panel">
-            <div class="control-group">
-                <label for="interface-select">Network Interface:</label>
-                <select id="interface-select">
-                    <option value="">All Interfaces</option>
-                </select>
-            </div>
-            <div class="control-buttons">
-                <button id="start-btn" class="btn btn-success">Start Monitoring</button>
-                <button id="stop-btn" class="btn btn-danger" disabled>Stop Monitoring</button>
-                <button id="clear-btn" class="btn btn-warning">Clear Stats</button>
-            </div>
-            <div class="status-indicator">
-                <span id="status-text">Status: Idle</span>
-                <span id="status-dot" class="status-dot idle"></span>
-            </div>
-        </div>
-
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon">&#128202;</div>
-                <div class="stat-content">
-                    <h3>Total Packets</h3>
-                    <p id="total-packets" class="stat-value">0</p>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon normal">&#128994;</div>
-                <div class="stat-content">
-                    <h3>Normal Traffic</h3>
-                    <p id="normal-packets" class="stat-value">0</p>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon attack">&#128308;</div>
-                <div class="stat-content">
-                    <h3>Attacks Detected</h3>
-                    <p id="attacks-detected" class="stat-value">0</p>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">&#128337;</div>
-                <div class="stat-content">
-                    <h3>Uptime</h3>
-                    <p id="uptime" class="stat-value">0s</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="content-grid">
-            <div class="panel live-packets">
-                <h2>Live Packet Analysis</h2>
-                <div id="packets-container" class="packets-list">
-                    <p class="no-data">No packets captured yet. Click "Start Monitoring" to begin.</p>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo-area">
+                <i class="fa-solid fa-shield-halved logo-icon"></i>
+                <div class="logo-text">
+                    <h1>NIDS PRO</h1>
+                    <p>Intrusion Detection System</p>
                 </div>
             </div>
 
-            <div class="panel attack-log">
-                <h2>Recent Attack Alerts</h2>
-                <div id="attack-log-container" class="attack-list">
-                    <p class="no-data">No attacks detected</p>
+            <div class="control-panel">
+                <div class="control-group">
+                    <label for="interface-select">Network Interface</label>
+                    <div class="select-wrapper">
+                        <select id="interface-select">
+                            <option value="">Loading interfaces...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="control-buttons">
+                    <button id="start-btn" class="btn btn-primary">
+                        <i class="fa-solid fa-play"></i> Start Monitoring
+                    </button>
+                    <button id="stop-btn" class="btn btn-danger" disabled>
+                        <i class="fa-solid fa-stop"></i> Stop Monitoring
+                    </button>
+                    <button id="clear-btn" class="btn btn-warning">
+                        <i class="fa-solid fa-trash"></i> Clear Statistics
+                    </button>
                 </div>
             </div>
-        </div>
 
-        <div class="system-stats">
-            <h2>System Resources</h2>
-            <div class="resource-grid">
+            <div class="system-stats">
+                <div class="panel-header" style="padding: 0; border: none; margin-bottom: 1rem;">
+                    <h2><i class="fa-solid fa-server"></i> System</h2>
+                </div>
                 <div class="resource-item">
                     <label>CPU Usage</label>
-                    <div class="progress-bar">
+                    <div class="progress-bg">
                         <div id="cpu-bar" class="progress-fill" style="width: 0%"></div>
                     </div>
-                    <span id="cpu-text">0%</span>
+                    <span id="cpu-text" class="resource-value">0%</span>
                 </div>
-                <div class="resource-item">
-                    <label>Memory Usage</label>
-                    <div class="progress-bar">
+                <div class="resource-item" style="margin-top: 1rem;">
+                    <label>Memory</label>
+                    <div class="progress-bg">
                         <div id="memory-bar" class="progress-fill" style="width: 0%"></div>
                     </div>
-                    <span id="memory-text">0%</span>
+                    <span id="memory-text" class="resource-value">0%</span>
                 </div>
             </div>
-        </div>
+
+            <!-- Alert Settings Panel -->
+            <div class="alert-settings">
+                <button id="send-alert" class="btn btn-warning" style="width: 100%; padding: 1rem; font-size: 1rem;">
+                    Send Alert
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="top-bar">
+                <div class="status-indicator">
+                    <div class="status-badge">
+                        <span id="status-dot" class="status-dot idle"></span>
+                        <span id="status-text">System Idle</span>
+                    </div>
+                </div>
+                <div class="uptime-badge status-badge">
+                    <i class="fa-regular fa-clock"></i>
+                    <span id="uptime">00:00:00</span>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon blue">
+                        <i class="fa-solid fa-network-wired"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>Total Packets</h3>
+                        <p id="total-packets" class="stat-value">0</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon green">
+                        <i class="fa-solid fa-shield-check"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>Normal Traffic</h3>
+                        <p id="normal-packets" class="stat-value">0</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon red">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>Threats Detected</h3>
+                        <p id="attacks-detected" class="stat-value">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+                <!-- Live Traffic -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2><i class="fa-solid fa-wave-square"></i> Live Traffic Analysis</h2>
+                        <span class="status-badge"
+                            style="font-size: 0.75rem; padding: 0.25rem 0.75rem;">Real-time</span>
+                    </div>
+                    <div class="panel-content">
+                        <div id="packets-container" class="packet-list">
+                            <div class="no-data">
+                                <i class="fa-solid fa-satellite-dish"></i>
+                                <p>Waiting for network traffic...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Threat Log -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2><i class="fa-solid fa-bug"></i> Threat Log</h2>
+                    </div>
+                    <div class="panel-content">
+                        <div id="attack-log-container" class="packet-list">
+                            <div class="no-data">
+                                <i class="fa-solid fa-check-circle"></i>
+                                <p>No threats detected</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
     </div>
 
     <script src="/static/js/dashboard.js"></script>
 </body>
+
 </html>

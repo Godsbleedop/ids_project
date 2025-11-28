@@ -2,6 +2,7 @@ from flask import Flask, render_template, jsonify, request
 import psutil
 import time
 from datetime import datetime
+from alert_manager import AlertManager
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here'
@@ -22,6 +23,14 @@ try:
 except Exception as e:
     print(f"ERROR loading ids_detector: {e}")
     ids_detector = None
+
+# Initialize Alert Manager
+try:
+    alert_manager = AlertManager()
+    print("Alert manager loaded")
+except Exception as e:
+    print(f"ERROR loading alert_manager: {e}")
+    alert_manager = None
 
 attack_log = []
 stats = {
@@ -95,7 +104,8 @@ def get_packets():
                 'error': 'System not initialized'
             })
         
-        recent_packets = packet_capture.get_recent_packets(20)
+        # OPTIMIZED: Get only last 10 packets (reduced from 20)
+        recent_packets = packet_capture.get_recent_packets(10)
         
         if not recent_packets:
             return jsonify({
@@ -121,6 +131,19 @@ def get_packets():
                 }
                 
                 attack_log.append(attack_entry)
+                
+                # Send alert notification
+                if alert_manager:
+                    threat_info = {
+                        'type': result.get('prediction', 'Unknown Attack'),
+                        'src': attack_entry['src'],
+                        'dst': attack_entry['dst'],
+                        'proto': attack_entry['proto'],
+                        'confidence': attack_entry['confidence']
+                    }
+                    alert_result = alert_manager.send_alert(threat_info)
+                    if alert_result.get('status') == 'success':
+                        print(f"[ALERT SENT] {alert_result.get('message')}")
                 
                 if len(attack_log) > 100:
                     attack_log.pop(0)
@@ -191,6 +214,118 @@ def clear_stats():
         packet_capture.clear_data()
     print("Statistics cleared")
     return jsonify({'status': 'success', 'message': 'Statistics cleared'})
+
+@app.route('/api/ingest_packets', methods=['POST'])
+def ingest_packets():
+    """Endpoint to receive packets from remote agents"""
+    try:
+        if packet_capture is None:
+            return jsonify({'status': 'error', 'message': 'Packet capture not available'})
+            
+        data = request.json
+        packets = data.get('packets', [])
+        
+        count = 0
+        for packet in packets:
+            if packet_capture.inject_packet(packet):
+                count += 1
+                
+        # Also run detection on these new packets immediately
+        if ids_detector and packets:
+            results = ids_detector.predict_batch(packets)
+            
+            # Update stats
+            for result in results:
+                if result['is_attack']:
+                    stats['attacks_detected'] += 1
+                    
+                    attack_entry = {
+                        'timestamp': datetime.fromtimestamp(result['timestamp']).strftime('%Y-%m-%d %H:%M:%S'),
+                        'src': result['raw_info'].get('src', 'unknown'),
+                        'dst': result['raw_info'].get('dst', 'unknown'),
+                        'proto': result['raw_info'].get('proto', 'unknown'),
+                        'confidence': result['confidence'],
+                        'source': 'remote_agent' # Mark as remote
+                    }
+                    
+                    attack_log.append(attack_entry)
+                    if len(attack_log) > 100:
+                        attack_log.pop(0)
+                else:
+                    stats['normal_packets'] += 1
+                    
+        return jsonify({'status': 'success', 'message': f'Ingested {count} packets'})
+        
+    except Exception as e:
+        print(f"Error ingesting packets: {e}")
+        return jsonify({'status': 'error', 'message': str(e)})
+
+@app.route('/api/alert/config', methods=['GET'])
+def get_alert_config():
+    """Get current alert configuration"""
+    if not alert_manager:
+        return jsonify({'error': 'Alert manager not available'})
+    
+    # Return config without sensitive credentials
+    safe_config = {
+        'enabled': alert_manager.config.get('enabled', False),
+        'notification_method': alert_manager.config.get('notification_method', 'webhook'),
+        'cooldown_seconds': alert_manager.config.get('cooldown_seconds', 60),
+        'admin_phone': alert_manager.config.get('admin_phone', ''),
+        'admin_email': alert_manager.config.get('admin_email', ''),
+        'webhook_url': alert_manager.config.get('webhook_url', ''),
+        'alert_count': alert_manager.alert_count,
+        'last_alert_time': alert_manager.last_alert_time
+    }
+    return jsonify(safe_config)
+
+@app.route('/api/alert/config', methods=['POST'])
+def update_alert_config():
+    """Update alert configuration"""
+    if not alert_manager:
+        return jsonify({'status': 'error', 'message': 'Alert manager not available'})
+    
+    try:
+        data = request.json
+        alert_manager.update_config(data)
+        return jsonify({'status': 'success', 'message': 'Configuration updated'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)})
+
+@app.route('/api/alert/test', methods=['POST'])
+def test_alert():
+    """Send alert for the most recent REAL detected threat (not a fake test)"""
+    if not alert_manager:
+        return jsonify({'status': 'error', 'message': 'Alert manager not available'})
+    
+    # Check if we have any real attacks detected
+    if not attack_log or len(attack_log) == 0:
+        return jsonify({
+            'status': 'info', 
+            'message': 'No real threats detected yet. Alerts only sent for actual attacks.'
+        })
+    
+    # Get the most recent real attack
+    recent_attack = attack_log[-1]
+    
+    # Create threat info from real attack data
+    threat_info = {
+        'type': 'REAL THREAT DETECTED',
+        'src': recent_attack.get('src', 'unknown'),
+        'dst': recent_attack.get('dst', 'unknown'),
+        'proto': recent_attack.get('proto', 'unknown'),
+        'confidence': recent_attack.get('confidence', 0.0)
+    }
+    
+    # Send alert with real threat data (bypassing cooldown for manual send)
+    original_cooldown = alert_manager.config["cooldown_seconds"]
+    alert_manager.config["cooldown_seconds"] = 0
+    
+    result = alert_manager.send_alert(threat_info)
+    
+    alert_manager.config["cooldown_seconds"] = original_cooldown
+    
+    return jsonify(result)
 
 if __name__ == '__main__':
     print("=" * 50)
